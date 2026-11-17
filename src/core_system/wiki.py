@@ -9,7 +9,14 @@ from typing import Any
 
 import yaml
 
-from .authorship import agent_author, normalize_authored_by
+from . import AGENT_AUTHOR_PREFIX
+from .authorship import (
+    agent_author,
+    is_agent,
+    normalize_authored_by,
+    reject_human_actor,
+    reject_human_actors,
+)
 from .trust import normalize_tier
 from .yaml_ld import join_note, split_note
 
@@ -22,13 +29,35 @@ DEFAULT_OKF_DEMO = ROOT / "demos" / "okf-bundle"
 WRITE_BACK = False
 
 
+def _assert_no_human_actors_in_markdown_tree(root: Path) -> None:
+    """Refuse to copy notes whose actor fields already claim a human: identity."""
+    if not root.exists():
+        return
+    for md in sorted(root.rglob("*.md")):
+        meta, _body = split_note(md.read_text(encoding="utf-8"))
+        try:
+            reject_human_actors(meta)
+        except ValueError as exc:
+            raise ValueError(f"{exc} (in {md})") from exc
+
+
 def _stamp_note(path: Path, *, authored_by: str, trust_tier: str, format_tag: str) -> None:
     text = path.read_text(encoding="utf-8")
     meta, body = split_note(text)
-    meta["authoredBy"] = normalize_authored_by(authored_by)
-    meta["trustTier"] = normalize_tier(trust_tier)
-    meta.setdefault("format", format_tag)
-    path.write_text(join_note(meta, body), encoding="utf-8")
+    reject_human_actors(meta)
+    reject_human_actor(authored_by, field="authoredBy")
+    stamped = normalize_authored_by(authored_by, allow_human=False)
+    reject_human_actor(stamped, field="authoredBy")
+    if not is_agent(stamped):
+        raise ValueError(
+            f"agent writes must carry {AGENT_AUTHOR_PREFIX}<bot name> (got {stamped!r})"
+        )
+    updated = dict(meta)
+    updated["authoredBy"] = stamped
+    updated["trustTier"] = normalize_tier(trust_tier)
+    updated.setdefault("format", format_tag)
+    reject_human_actors(updated)
+    path.write_text(join_note(updated, body), encoding="utf-8")
 
 
 def import_vault_ld(
@@ -39,6 +68,9 @@ def import_vault_ld(
     trust_tier: str = "attested",
 ) -> Path:
     """Copy a Vault-LD vault into the working wiki and stamp authorship."""
+    authored = agent_author(bot_name)
+    reject_human_actor(authored, field="authoredBy")
+    _assert_no_human_actors_in_markdown_tree(source)
     if dest.exists():
         for child in dest.iterdir():
             if child.name.startswith("."):
@@ -57,7 +89,6 @@ def import_vault_ld(
         else:
             shutil.copy2(item, target)
 
-    authored = agent_author(bot_name)
     for md in dest.rglob("*.md"):
         _stamp_note(md, authored_by=authored, trust_tier=trust_tier, format_tag="vault-ld")
     return dest
@@ -86,6 +117,9 @@ def import_okf(
 
     Adds context.jsonld beside the copy (Vault-LD Appendix B lift).
     """
+    authored = agent_author(bot_name)
+    reject_human_actor(authored, field="authoredBy")
+    _assert_no_human_actors_in_markdown_tree(source)
     dest = dest or (DEFAULT_WIKI / "okf")
     if dest.exists():
         shutil.rmtree(dest)
@@ -94,7 +128,6 @@ def import_okf(
         json.dumps(lift_okf_context(), indent=2) + "\n",
         encoding="utf-8",
     )
-    authored = agent_author(bot_name)
     for md in dest.rglob("*.md"):
         _stamp_note(md, authored_by=authored, trust_tier=trust_tier, format_tag="okf")
     return dest
@@ -102,16 +135,18 @@ def import_okf(
 
 def seed_wiki(*, bot_name: str = "seed") -> dict[str, Path]:
     """First wiki: agent-generated seed from the demos."""
+    authored = agent_author(bot_name)
     vault = import_vault_ld(bot_name=bot_name, trust_tier="attested")
     okf = import_okf(bot_name=bot_name, trust_tier="provisional")
     index = DEFAULT_WIKI / "index.md"
     meta = {
         "type": "[[Wiki]]",
         "label": "Core wiki",
-        "authoredBy": agent_author(bot_name),
+        "authoredBy": authored,
         "trustTier": "agent-draft",
         "format": "vault-ld",
     }
+    reject_human_actors(meta)
     body = (
         "# Core wiki\n\n"
         "Agent-seeded from the Vault-LD culinary demo and the OKF sample bundle.\n\n"

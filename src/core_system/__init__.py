@@ -3,6 +3,7 @@
 __version__ = "0.1.0"
 
 WRITE_BACK_DEFAULT = False
+# Exact spelling only. Agents cannot write this; Billy attests in markdown.
 HUMAN_AUTHOR = "human:whsutherland"
 AGENT_AUTHOR_PREFIX = "grokbot/"
 TRUST_TIERS = ("verified", "attested", "provisional", "agent-draft")
