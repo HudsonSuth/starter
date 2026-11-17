@@ -1,4 +1,9 @@
-"""File-backed agent memory — agent writes exact statements; no LLM inference."""
+"""File-backed agent memory — agent writes exact statements; no LLM inference.
+
+Saves are agent writes. Authorship is ``grokbot/<bot name>``. A ``human:``
+actor in ``agent_id``, ``bot_name``, or ``authored_by`` is refused and is not
+rewritten. Billy attests in markdown, not through this store.
+"""
 
 from __future__ import annotations
 
@@ -10,7 +15,14 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from ..authorship import agent_author, normalize_authored_by
+from .. import AGENT_AUTHOR_PREFIX
+from ..authorship import (
+    agent_author,
+    is_agent,
+    normalize_authored_by,
+    reject_human_actor,
+    reject_human_actors,
+)
 
 
 @dataclass
@@ -81,6 +93,16 @@ class FileMemoryStore:
         session_id: str | None = None,
         tags: str | list[str] | None = None,
     ) -> MemoryRecord:
+        # Agent/MCP callers cannot present a human: actor. Check every identity
+        # field, not only the one that wins authorship resolution.
+        reject_human_actors(
+            {
+                "authored_by": authored_by,
+                "author": authored_by,
+                "bot_name": bot_name,
+                "agent_id": agent_id,
+            }
+        )
         text = (memory or "").strip()
         if not text:
             raise ValueError("memory is required")
@@ -95,14 +117,24 @@ class FileMemoryStore:
         author = normalize_authored_by(
             authored_by or (agent_author(bot_name) if bot_name else None) or agent_id,
             default_bot=bot_name or agent_id or "memory",
+            allow_human=False,
         )
+        reject_human_actor(author, field="authored_by")
+        if not is_agent(author):
+            raise ValueError(
+                f"agent writes must carry {AGENT_AUTHOR_PREFIX}<bot name> (got {author!r})"
+            )
+        stored_agent_id = agent_id or (
+            author.split("/", 1)[-1] if author.startswith(AGENT_AUTHOR_PREFIX) else None
+        )
+        reject_human_actor(stored_agent_id, field="agent_id")
         rec = MemoryRecord(
             id=str(uuid.uuid4()),
             memory=text,
             created_at=time.time(),
             authored_by=author,
             user_id=user_id,
-            agent_id=agent_id or (author.split("/", 1)[-1] if author.startswith("grokbot/") else None),
+            agent_id=stored_agent_id,
             session_id=session_id,
             tags=tag_list,
         )

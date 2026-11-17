@@ -8,6 +8,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
+from ..authorship import reject_human_actors
 from .store import FileMemoryStore
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -28,9 +29,12 @@ def save_memory_tool(
 ) -> str:
     """Save an exact statement to persistent memory. Rules-only — no LLM extraction.
 
-    Prefer grokbot/<bot> authorship via bot_name or agent_id. Only human:whsutherland
-    counts as human when authored that way elsewhere in the wiki.
+    Authorship is grokbot/<bot name> via bot_name or agent_id. This tool refuses
+    a human: actor, including human:whsutherland and case, whitespace, or unicode
+    variants, and does not rewrite it. Billy attests only by editing markdown
+    authoredBy to the exact string human:whsutherland.
     """
+    reject_human_actors({"agent_id": agent_id, "bot_name": bot_name})
     rec = store.save(
         memory,
         bot_name=bot_name,

@@ -14,6 +14,10 @@ Recorded 2026-11-16 (America/New_York). These are the product locks for v0.
 | Authorship | Agents write as `grokbot/<bot name>`; only `human:whsutherland` counts as human |
 | Deferred | Neo4j and KI until Neo4j version on Sutherland is confirmed |
 
+## Authorship enforcement
+
+Recorded 2026-11-17. Agents and MCP callers (`SaveMemoryTool`, the memory store, wiki seed/import) write `grokbot/<bot name>`. A `human:` actor in an author, `generated.by`, `verified-by`, `agent_id`, or `bot_name` field — including case, whitespace, and unicode variants — raises `ValueError` and is not rewritten to `grokbot/`. Billy attests by setting the exact frontmatter `authoredBy: human:whsutherland` in markdown. Trust tiers stay look-and-filter only. An agent cannot satisfy them by claiming `human:whsutherland`.
+
 ## Neo4j note (not Sutherland)
 
 This Cloud Agent VM cannot reach Sutherland. The only Neo4j pin visible in your

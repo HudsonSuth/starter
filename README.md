@@ -31,9 +31,29 @@ tests/                       unit + roundtrip smoke tests
 - Human notes: `authoredBy: human:whsutherland`
 - Agent notes: `authoredBy: grokbot/<bot name>`
 
+Only the exact string `human:whsutherland` is the human actor. That string is Billy (William Sutherland). A different case, extra whitespace, or a unicode lookalike is a different string and is not this identity.
+
+### How Billy attests
+
+Markdown is the source of truth. Billy attests a note by editing the file and setting:
+
+```yaml
+authoredBy: human:whsutherland
+```
+
+`is_human` is true only for that exact string. `normalize_authored_by` accepts that exact string when a non-agent caller checks an attestation. `SaveMemoryTool`, the memory store, and wiki seed/import do not accept it.
+
+### Agent and MCP writes
+
+`SaveMemoryTool` and `FileMemoryStore.save` stamp `grokbot/<bot name>` from `bot_name`, a `grokbot/` author, or a plain bot name in `agent_id`. Wiki seed and import stamp the same way.
+
+An agent write raises `ValueError` when `agent_id`, `bot_name`, `authored_by`, or a note field named `author`, `generated.by`, or `verified-by` is a `human:` actor. The refused value includes `human:whsutherland` and case, whitespace, and unicode variants. The error text starts with `refusing to write human: actor` and says the write was not rewritten. The store file is left unchanged.
+
+`user_id` is the memory subject, not the author. The statement text may name Billy. That does not set authorship.
+
 ## Trust tiers
 
-Frontmatter `trustTier` values (`verified`, `attested`, `provisional`, `agent-draft`) affect display classes and filters only. They never gate reads or writes.
+Frontmatter `trustTier` values (`verified`, `attested`, `provisional`, `agent-draft`) affect display classes and filters only. They never gate reads or writes. Tiers stay meaningful because an agent cannot take Billy's actor identity.
 
 ## Memory MCP (rules-only)
 
