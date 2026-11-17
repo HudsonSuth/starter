@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "core-agent-memory": {
+      "command": "python",
+      "args": ["-m", "core_system.memory.mcp_server"],
+      "env": {
+        "CORE_MEMORY_DIR": "data/agent-memory",
+        "CORE_WRITE_BACK": "0"
+      }
+    }
+  }
+}

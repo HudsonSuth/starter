@@ -1,0 +1,10 @@
+This product vendors converter scripts from Vault-LD
+(https://github.com/The-Knowledge-Graph-Guys/vault-ld), Apache License 2.0.
+See NOTICE.vault-ld and vendor/vault-ld-scripts/.
+
+The culinary demo under demos/vault-ld/ is copied from the Vault-LD Example
+bundle in that repository for seeding the first wiki.
+
+OpenSearch Memory Tools API shape is followed for agent-memory MCP tool names
+and parameters; this MVP uses a local file-backed store and does not bundle
+opensearch-mcp-server-py.

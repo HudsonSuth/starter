@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "core-system"
+version = "0.1.0"
+description = "Markdown-first wiki with Vault-LD/OKF, YAML-LD/RDF roundtrip, rules-only agent memory"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "rdflib==7.6.0",
+  "PyYAML==6.0.3",
+  "PyLD==2.0.4",
+  "mcp==1.12.4",
+]
+
+[project.scripts]
+core-memory-mcp = "core_system.memory.mcp_server:main"
+core-wiki-import = "core_system.wiki:main"
+core-yaml-ld = "core_system.yaml_ld:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"

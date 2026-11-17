@@ -1,0 +1,9 @@
+# Vault-LD converter pins (security-relevant for untrusted RDF)
+rdflib==7.6.0
+PyYAML==6.0.3
+
+# JSON-LD library for YAML-LD expansion / compaction
+PyLD==2.0.4
+
+# MCP server for agent-memory tools
+mcp==1.12.4
